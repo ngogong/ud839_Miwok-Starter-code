@@ -9,6 +9,7 @@ public class Word {
     private String mDefaultTranslation;
     private String mMiwokTranslation;
     private int mImageResourceId;
+    private int mAudioFileId;
     private boolean mImageAttach;
 
     public Word(String defaultTranslation, String miwokTranslation) {
@@ -17,12 +18,22 @@ public class Word {
         mImageAttach=false;
     }
 
-    public Word(String defaultTranslation, String miwokTranslation, int mimagersourceId) {
+    public Word(String defaultTranslation, String miwokTranslation, int maudiofileId, int mimagersourceId) {
         mDefaultTranslation = defaultTranslation;
         mMiwokTranslation = miwokTranslation;
         mImageResourceId = mimagersourceId;
         mImageAttach=true;
+        mAudioFileId=maudiofileId;
+
     }
+
+    public Word(String defaultTranslation, String miwokTranslation,  int maudiofileId) {
+        mDefaultTranslation = defaultTranslation;
+        mMiwokTranslation = miwokTranslation;
+        mImageAttach=false;
+        mAudioFileId=maudiofileId;
+    }
+
 
 
     public String getDefaultTranslation() {
@@ -40,5 +51,9 @@ public class Word {
     public boolean getImageAttach() {
         return mImageAttach;
     }
+    public int getmAudioResourceId() {
+        return mAudioFileId;
+    }
+
 
 }
