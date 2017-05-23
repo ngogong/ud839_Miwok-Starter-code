@@ -15,6 +15,8 @@
  */
 package com.example.android.miwok;
 
+import android.content.Context;
+import android.media.AudioManager;
 import android.media.MediaPlayer;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -27,11 +29,40 @@ import java.util.ArrayList;
 
 public class NumbersActivity extends AppCompatActivity {
     private MediaPlayer mMediaPlayer;
+    private AudioManager mAm;
+    private AudioManager.OnAudioFocusChangeListener mAfChangeListener;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.word_list);
+
+        mAm = (AudioManager) NumbersActivity.this.getSystemService(Context.AUDIO_SERVICE);
+        mAfChangeListener = new AudioManager.OnAudioFocusChangeListener() {
+                    public void onAudioFocusChange(int focusChange) {
+                        if (focusChange == AudioManager.AUDIOFOCUS_LOSS) {
+                            // Permanent loss of audio focus
+                            // Pause playback immediately
+                            releaseMediaPlayer();
+
+                        }
+                        else if (   (focusChange == AudioManager.AUDIOFOCUS_LOSS_TRANSIENT)
+                                  ||(focusChange == AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK) ) {
+                                // Pause playback
+                            // Lower the volume, keep playing
+                            if (mMediaPlayer != null){
+                                mMediaPlayer.pause();
+                                mMediaPlayer.seekTo(0);
+                            }
+
+                        } else if (focusChange == AudioManager.AUDIOFOCUS_GAIN) {
+                            // Your app has been granted audio focus again
+                            // Raise volume to normal, restart playback if necessary
+                            mMediaPlayer.start();
+                        }
+                    }
+                };
 
 
         final ArrayList<Word> words = new ArrayList<Word>();
@@ -66,17 +97,27 @@ public class NumbersActivity extends AppCompatActivity {
         listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
-                mMediaPlayer = MediaPlayer.create(view.getContext(), words.get(i).getmAudioResourceId());
-                mMediaPlayer.start();
+                if ( (mAm != null) && (mAm.requestAudioFocus(mAfChangeListener,
+                        // Use the music stream.
+                        AudioManager.STREAM_MUSIC,
+                        // Request permanent focus.
+                        AudioManager.AUDIOFOCUS_GAIN )
+                        == AudioManager.AUDIOFOCUS_GAIN) ) {
+                    mMediaPlayer = MediaPlayer.create(view.getContext(), words.get(i).getmAudioResourceId());
+                    mMediaPlayer.start();
+
+                    mMediaPlayer.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
+                        @Override
+                        public void onCompletion(MediaPlayer mediaPlayer) {
+                            releaseMediaPlayer();
+                            Toast.makeText(NumbersActivity.this, "i am done", Toast.LENGTH_LONG).show();
+                        }
+                    });
+
+                }
                 Toast.makeText(NumbersActivity.this, "hello i=" + i + ", l=" +l, Toast.LENGTH_SHORT).show();
 
-                mMediaPlayer.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
-                    @Override
-                    public void onCompletion(MediaPlayer mediaPlayer) {
-                        releaseMediaPlayer();
-                        Toast.makeText(NumbersActivity.this, "i am done", Toast.LENGTH_LONG).show();
-                    }
-                });
+
 
             }
         });
@@ -105,6 +146,9 @@ public class NumbersActivity extends AppCompatActivity {
             // setting the media player to null is an easy way to tell that the media player
             // is not configured to play an audio file at the moment.
             mMediaPlayer = null;
+        }
+        if ((mAm != null) && (mAfChangeListener != null) ){
+            mAm.abandonAudioFocus(mAfChangeListener);
         }
     }
 }
